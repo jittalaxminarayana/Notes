@@ -1,5 +1,5 @@
 To create react native project.        
-npx @react-native-community/cli@latest init AwesomeProject
+npx @react-native-community/cli@latest init AwesomeProject 
 
 nano ~/.zshrc to edit zsh file 
 
