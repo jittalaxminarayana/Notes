@@ -1,0 +1,201 @@
+To create react native project.        
+npx @react-native-community/cli@latest init AwesomeProject
+
+nano ~/.zshrc to edit zsh file 
+
+Clean android : cd android
+./gradlew clean
+
+Device level gradlew cleaning
+cd android
+./gradlew --refresh-dependencies clean cd ..   
+
+cd ..
+npx react-native run-android
+
+To see logs in offline mode:
+adb logcat "*:S ReactNativeJS:V"
+
+To Clean the bundle 
+react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+To generate debug app we need to bundle the apk 
+ Include the JS bundle in debug build (not common, but possible)
+You can bundle the JS manually and add it to the debug build, though this is less common:
+
+npx react-native bundle \
+  --platform android \
+  --dev false \
+  --entry-file index.js \
+  --bundle-output android/app/src/main/assets/index.android.bundle \
+  --assets-dest android/app/src/main/res
+
+For iOS bundeling : react-native bundle \
+  --platform ios \
+  --dev false \
+  --entry-file index.js \
+  --bundle-output ios/main.jsbundle \
+  --assets-dest ios
+
+Then rebuild the debug APK.
+
+Testuser@1234
+
+Steps to make your dev build run without Metro(Debug APK):
+1. Bundle the JS code into assets
+  npx react-native bundle \
+  --platform android \
+  --dev false \
+  --entry-file index.js \
+  --bundle-output android/app/src/main/assets/index.android.bundle \
+  --assets-dest android/app/src/main/res
+
+3. If android/app/src/main/assets doesn’t exist, create it:
+      mkdir -p android/app/src/main/assets
+
+4. Rebuild the app
+     cd android
+     ./gradlew assembleDebug
+
+Setup of release apk: 
+Configure Signing in Gradle
+Edit android/app/build.gradle:
+
+Add signing config inside the android block:
+
+android {
+    ...
+
+    signingConfigs {
+        release {
+            storeFile file('my-release-key.keystore')
+            storePassword '123456'
+            keyAlias 'my-key-alias'
+            keyPassword '123456'
+            storeType 'pkcs12' // optional
+        }
+        // NO debug here
+    }
+
+    buildTypes {
+        debug {
+            // usually no signing config here, uses debug key
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+
+5.Install on your device
+adb install android/app/build/outputs/apk/debug/app-debug.apk
+
+
+Setupgithub url:
+git remote set-url origin https://jittalaxminarayana@github.com/jittalaxminarayana/MyExpense.git
+
+Token:   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
+
+3.Generate APK  for playstore
+
+Debug APK:     cd android && ./gradlew assembleDebug
+Release APK:    cd android && ./gradlew assembleRelease  
+
+Release AAB:    cd android && ./gradlew bundleRelease
+Updated document picker: npm i @react-native-documents/picker
+
+Path and command to check if apk is debug or release
+/Users/cloudangles/Library/Android/sdk/build-tools/36.0.0
+ 
+./apksigner verify --verbose --print-certs ~/Desktop/centrica/quote-tool-local/android/app/build/outputs/apk/release/app-release-22-aug2.apk
+ 
+ic_launcher.xml in mipmap-anydpi-v26 folder  for adaptive icon in android 
+
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background"/>
+  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+  <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
+</adaptive-icon>
+
+ Use secure storage (EncryptedStorage, Keychain) for sensitive tokens
+let a;
+console.log(a); // undefined
+a = 10;
+In this example, a is in the TDZ until it's assigned the value 10.
+Definition:
+The Temporal Dead Zone (TDZ) is the time between when a let or const variable is hoisted and when it is assigned a value in the code.
+Why It Matters:
+Accessing a variable in the TDZ results in a ReferenceError, as the variable exists but is not yet initialized.
+
+
+Why to use typescript:
+If you're building a long-term project, using TypeScript in React Native is a best practice and highly recommended.
+
+1.Type-safe interfaces between components
+2.Reduced bugs in production because of type checking 
+3.Faster development via IDE suggestions
+4.Intelligent code navigation
+5.Clearer interfaces
+6.You want fewer runtime bugs
+7.You're building a medium to large project
+8.You want better dev experience with autocompletion, refactoring, and API handling
+
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+const Stack1 = createNativeStackNavigator();
+const Stack2 = createNativeStackNavigator();
+const RootStack = createNativeStackNavigator();
+
+function Stack1Navigator() {
+  return (
+    <Stack1.Navigator>
+      <Stack1.Screen name="ScreenA1" component={ScreenA1} />
+      <Stack1.Screen name="ScreenA2" component={ScreenA2} />
+      <Stack1.Screen name="ScreenA3" component={ScreenA3} />
+      <Stack1.Screen name="ScreenA4" component={ScreenA4} />
+      <Stack1.Screen name="ScreenA5" component={ScreenA5} />
+    </Stack1.Navigator>
+  );
+}
+
+function Stack2Navigator() {
+  return (
+    <Stack2.Navigator>
+      <Stack2.Screen name="ScreenB1" component={ScreenB1} />
+      <Stack2.Screen name="ScreenB2" component={ScreenB2} />
+      <Stack2.Screen name="ScreenB3" component={ScreenB3} />
+      <Stack2.Screen name="ScreenB4" component={ScreenB4} />
+      <Stack2.Screen name="ScreenB5" component={ScreenB5} />
+    </Stack2.Navigator>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Register both stacks inside RootStack */}
+        <RootStack.Screen name="Stack1" component={Stack1Navigator} />
+        <RootStack.Screen name="Stack2" component={Stack2Navigator} />
+      </RootStack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+Answer: navigation.navigate("Stack2", { screen: "ScreenB4" }); or navigation.navigate("Stack2", { screen: "ScreenB4", params: { userId: 101 } });
+
+How will you navigate from x screen to one of the tab of bottom tab?
+navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs', params: { screen: 'Current Quote' } }],
+      })
+    );
+
+
