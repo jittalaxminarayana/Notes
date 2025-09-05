@@ -1,0 +1,152 @@
+1. What is Fastlane?
+
+Fastlane is a command-line tool to automate building, testing, and deploying mobile apps.
+Key things it does:
+Build APKs/AABs (Android) or IPAs (iOS)
+Manage code signing and provisioning
+Run automated tests
+Deploy to App Store / TestFlight / Play Store
+Send build notifications to Slack or email
+
+💡 In React Native, Fastlane works on the native side (android/ and ios/ folders), but it will also bundle your JS code automatically during builds.
+
+2. Why use Fastlane in React Native?
+
+Automates repetitive tasks: no need to open Android Studio or Xcode every time
+Ensures consistent builds in CI/CD pipelines
+Handles signing automatically (keystores for Android, provisioning profiles for iOS)
+Can integrate with GitHub Actions, Bitrise, CircleCI, etc.
+Helps with testing, screenshots, and distributing to testers quickly
+
+3. How to Integrate Fastlane in a React Native Project
+Step 1: Install Fastlane
+# macOS (iOS + Android)
+brew install fastlane
+
+# Or via Ruby
+sudo gem install fastlane -NV
+
+Android only: Windows/Linux/macOS can use Fastlane for Android too.
+
+Step 2: Initialize Fastlane
+Navigate to native folders and initialize:
+Android
+cd android
+fastlane init
+
+iOS
+cd ios
+fastlane init
+
+You’ll be prompted to choose your platform and workflow (manual or automatic).
+Fastlane will create a Fastfile and Appfile for configuration.
+
+Step 3: Define Lanes
+
+Lanes are predefined workflows.
+Example Fastfile for React Native:
+
+default_platform(:android)
+
+platform :android do
+  desc "Build debug APK"
+  lane :assemble_debug do
+    gradle(task: "assembleDebug")
+  end
+
+  desc "Build release APK and upload to Play Store Beta"
+  lane :beta do
+    gradle(task: "bundleRelease")
+    supply(track: "beta", json_key: "./playstore-key.json")
+  end
+end
+
+gradle(task: "assembleDebug") → builds debug APK
+supply → uploads APK/AAB to Play Store
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build debug IPA for testing"
+  lane :assemble_debug do
+    build_app(
+      workspace: "MyApp.xcworkspace",
+      scheme: "MyApp",
+      configuration: "Debug",
+      export_method: "development"
+    )
+  end
+
+  desc "Build release IPA and upload to TestFlight"
+  lane :beta do
+    build_app(
+      workspace: "MyApp.xcworkspace",
+      scheme: "MyApp",
+      configuration: "Release",
+      export_method: "app-store"
+    )
+    upload_to_testflight(
+      username: "your_apple_id@example.com"
+    )
+  end
+end
+
+Run Fastlane lane:
+cd ios
+fastlane assemble_debug   # for debug IPA
+fastlane beta
+
+Step 4: Use in CI/CD
+
+You can run Fastlane commands in CI pipelines:
+cd android
+fastlane assemble_debug
+# or
+fastlane beta
+
+React Native JS bundle is generated automatically during native build.
+
+Fastlane handles signing, versioning, and deployment automatically.
+
+Step 5: Optional Automation
+
+Integrate with GitHub Actions, Bitrise, CircleCI
+Automate:
+Building on push
+Running tests
+
+Deploying to testers or stores
+
+Sending Slack notifications
+
+
+What is json_key in Fastlane’s supply?
+supply(track: "beta", json_key: "./playstore-key.json")
+
+
+supply → Fastlane action to upload Android APK/AAB to Google Play Store.
+track: "beta" → Uploads the build to the Beta track (instead of production).
+json_key → Path to a Google Service Account JSON file.
+Details about json_key
+
+Google Play API access
+To upload automatically, Fastlane uses Google Play Developer API.
+You need a Service Account with permissions to upload apps.
+Creating the JSON file
+Go to Google Play Console → Settings → API access
+Create a Service Account in Google Cloud.
+Grant it Release Manager or higher permission.
+Download the JSON key file.
+Place it in your project (e.g., ./playstore-key.json).
+
+What’s inside the JSON
+client_email
+private_key
+project_id
+Other credentials to authenticate with Google Play API
+
+Why it’s needed
+
+Without json_key, Fastlane cannot authenticate with Google Play.
+It allows Fastlane to upload your app securely without manually logging in.
+
