@@ -1,0 +1,160 @@
+App name: MyCommunity
+Gmail: mycommuty@gmail.com
+Password: MyCommuty@123
+
+
+
+
+☁️ Backend (Firebase)
+* Firestore Database:
+    * users (security guards, residents, admins)
+    * notices
+    * messages or chats
+    * maintenance_payments
+    * visitors
+* Cloud Functions:
+    * Payment processing
+    * Auto-reminders
+    * Role-based access control
+* Firebase Auth:
+    * Email/password or phone number login
+    * Role-based users: Admin, Security, Resident
+* Firebase Storage:
+    * Upload ID proofs, visitor photos, etc.
+
+
+Feature	Description
+🔐 Login/Register	Firebase Auth with roles (Admin, Resident, Guard)
+🚪 Visitor Management	Security guard adds new visitor entry, residents approve/reject
+📢 Notice Board	Admin posts notices, real-time updates with Firestore
+💬 Communication/Chat	One-to-one or group chat (Firestore real-time or third-party like Sendbird if complex)
+💸 Maintenance Collection	Users view dues, upload receipts or integrate Razorpay/Stripe for payments
+🔔 Push Notifications	Notices, visitor approval, dues reminder
+📷 Media Uploads	Photos for visitors, IDs, etc. stored in Firebase Storage
+
+Core Features & Implementation
+1. Security Module
+    * Visitor management system
+    * Security alerts
+    * Gate pass generation
+    * Guard check-in/check-out
+2. Communication Platform
+    * Community chat
+    * Direct messaging
+    * Emergency broadcasts
+    * Announcement board
+3. Notice Board
+    * Community events
+    * Rules and regulations
+    * Important contacts
+    * Lost and found
+4. Maintenance Management
+    * Maintenance fee collection
+    * Payment tracking
+    * Receipt generation
+    * Expense reports
+5. User Profiles
+    * Resident information
+    * Vehicle details
+    * Family members
+    * Emergency contacts
+
+/src
+  /navigation
+    AppNavigator.js   // Root navigator
+    CommonTabs.js     // Shared tab screens
+    RoleStack.js      // Dynamic stack based on role
+  /screens
+    /Common
+      Chat.js
+      NoticeBoard.js
+      Timeline.js
+    /Admin
+    /Resident
+    /Security
+
+
+/communities
+  /{communityId}
+    - name: "Green Valley"
+    - address: "123 Main St"
+    - contactNumber: "+919876543210"
+    - createdAt: timestamp
+
+
+/communities/{communityId}/users
+  /{userId}
+    - name: "Mani"
+    - phoneNumber: "+919898123543"
+    - email: "mani@123gmail.com"
+    - role: “Resident" | “Admin" | “Security"
+    - apartmentId: "B-303"
+    - createdAt: timestamp
+    - approved: true
+    - profileImageUrl: "url"
+
+/communities/{communityId}/notices
+  /{noticeId}
+    - title: "Community Meeting"
+    - content: "Meeting on Saturday..."
+    - category: "event" | "announcement" | "emergency"
+    - createdBy: "{userId}"
+    - createdAt: timestamp
+    - expireAt: timestamp
+    - attachments: [urls]
+
+/communities/{communityId}/timeline
+  /{postId}
+    - content: "Text of the post"
+    - postedBy: "{userId}"
+    - createdAt: timestamp
+    - likes: [userIds]
+    - attachments: [urls]
+
+/communities/{communityId}/visitors
+  /{visitorId}
+    - name: "Guest Name"
+    - phoneNumber: "+919876543210"
+    - hostUserId: "{userId}"
+    - apartmentId: "B-303"
+    - purpose: "Delivery"
+    - entryTime: timestamp
+    - exitTime: timestamp
+    - status: "expected" | "checked-in" | "checked-out"
+    - vehicleNumber: "KA01AB1234" (optional)
+
+/communities/{communityId}/emergencyContacts
+  /{contactId}
+    - name: "Fire Department"
+    - number: "+91123456789"
+    - category: "fire" | "police" | "medical" | "plumbing" | "electrical"
+
+/communities/{communityId}/maintenance
+  /{maintenanceId}
+    - title: "Monthly Maintenance"
+    - amount: 5000
+    - dueDate: timestamp
+    - description: "Monthly maintenance fee for August"
+    - createdAt: timestamp
+
+/communities/{communityId}/payments
+  /{paymentId}
+    - userId: "{userId}"
+    - maintenanceId: "{maintenanceId}" (optional)
+    - amount: 5000
+    - paymentDate: timestamp
+    - paymentMode: "online" | "cash" | "cheque"
+    - receiptUrl: "url" (optional)
+    - status: "pending" | "completed" | "failed"
+    - transactionId: "xyz123" (optional)
+
+/communities/{communityId}/gatePasses
+  /{passId}
+    - visitorId: "{visitorId}"
+    - generatedBy: "{userId}"
+    - validFrom: timestamp
+    - validTo: timestamp
+    - qrCodeUrl: "url" (optional)
+    - status: "active" | "used" | "expired"
+
+
