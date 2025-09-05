@@ -1,0 +1,1326 @@
+React native project creation: npx @react-native-community/cli init MyCommUnity
+
+# React Native Deployment Guide
+This guide covers the process of deploying a React Native app to both the Apple App Store and Google Play Store, including setting up CI/CD for automated updates.
+
+## Prerequisites
+
+- React Native development environment set up
+- Apple Developer Account ($99/year) for iOS deployment
+- Google Play Developer Account ($25 one-time fee)
+- GitHub/BitBucket repository for your project
+- Basic understanding of CI/CD concepts
+
+## Part 1: iOS Deployment Setup
+
+### 1. Xcode Configuration
+1. Open your project in Xcode
+2. Configure signing & capabilities:
+   - Select your project in the navigator
+   - Choose your target
+   - Go to "Signing & Capabilities"
+   - Enable "Automatically manage signing"
+   - Select your team
+   - Set up your Bundle Identifier (e.g., com.yourcompany.appname)
+
+### 2. App Store Connect Setup
+1. Go to App Store Connect (https://appstoreconnect.apple.com)
+2. Create a new app:
+   - Click the "+" button
+   - Fill in app information
+   - Choose your Bundle ID
+   - Set up app privacy information
+   - Configure app pricing and availability
+
+### 3. Building for iOS Release
+```bash
+# Install dependencies
+npm install
+
+# Build the release version
+cd ios
+pod install
+xcodebuild -workspace YourApp.xcworkspace -scheme YourApp -configuration Release
+
+## Part 2: Android Deployment Setup
+### 1. Google Play Console Configuration
+1. Access Google Play Console
+2. Create a new application
+3. Fill in app details:
+   - Title
+   - Short/Full descriptions
+   - Graphics (icons, feature graphic, screenshots)
+   - Content rating questionnaire
+   - Pricing & distribution
+
+### 2. Generating Signed APK/Bundle
+1. Generate upload key:
+```bash
+keytool -genkey -v -keystore your-app-key.keystore -alias your-key-alias -keyalg RSA -keysize 2048 -validity 10000
+```
+
+2. Configure gradle variables in `android/gradle.properties`:
+```properties
+MYAPP_UPLOAD_STORE_FILE=your-app-key.keystore
+MYAPP_UPLOAD_KEY_ALIAS=your-key-alias
+MYAPP_UPLOAD_STORE_PASSWORD=*****
+MYAPP_UPLOAD_KEY_PASSWORD=*****
+```
+
+3. Build Android App Bundle:
+```bash
+cd android
+./gradlew bundleRelease
+```
+
+## Part 3: CI/CD Pipeline Setup
+
+### 1. GitHub Actions Configuration
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          
+      - name: Install Fastlane
+        run: gem install fastlane
+        
+      # iOS Build & Deploy
+      - name: iOS Build
+        run: |
+          cd ios
+          pod install
+          fastlane build
+          
+      - name: Deploy to TestFlight
+        run: fastlane ios beta
+        
+      # Android Build & Deploy
+      - name: Android Build
+        run: |
+          cd android
+          ./gradlew bundleRelease
+          
+      - name: Deploy to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_CONFIG }}
+          packageName: com.yourcompany.appname
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+```
+
+### 2. Fastlane Setup
+
+Create `ios/fastlane/Fastfile`:
+```ruby
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    increment_build_number
+    build_app(workspace: "YourApp.xcworkspace", scheme: "YourApp")
+    upload_to_testflight
+  end
+end
+```
+
+### 3. Version Management
+1. Update version in `package.json`
+2. For iOS: Update version in Xcode
+3. For Android: Update `versionCode` and `versionName` in `android/app/build.gradle`
+
+## Part 4: Pushing Updates to Users
+
+### iOS Updates
+1. Submit app updates through TestFlight first:
+   - Run CI/CD pipeline
+   - Wait for TestFlight processing
+   - Test the build
+   - Submit for App Store Review
+
+### Android Updates
+1. Internal testing track:
+   - CI/CD pushes to internal track
+   - Test the build
+   - Promote to production track
+
+### Best Practices for Updates
+1. Implement version checking in your app
+2. Use semantic versioning (MAJOR.MINOR.PATCH)
+3. Maintain a changelog
+4. Consider implementing CodePush for instant updates
+5. Test thoroughly before deployment
+
+## Common Issues and Solutions
+
+### iOS
+- Provisioning profile issues: Regenerate profiles in Apple Developer Portal
+- Signing issues: Verify team selection and bundle identifier
+- Archive failures: Clean build folder and rebuild
+
+### Android
+- Keystore issues: Ensure keystore file is properly configured
+- Version conflicts: Check versionCode increments
+- Bundle size: Optimize assets and implement ProGuard
+
+## Security Considerations
+
+1. Store sensitive keys securely:
+   - Use GitHub Secrets for CI/CD
+   - Never commit keystores or certificates
+   - Use environment variables for sensitive data
+
+2. Implement security best practices:
+   - Enable app signing
+   - Implement SSL pinning
+   - Obfuscate code where necessary
+
+
+MVC Structure in React Native
+bash
+CopyEdit
+/src
+ ├── models/          # Data structures & API response models
+ ├── views/           # UI components (React Native Screens)
+ ├── controllers/     # Handles logic, API requests
+ ├── navigation/      # Stack/Tab Navigation
+ ├── App.js           # Root component
+
+
+UseCallback:
+In React Native, useCallback is a hook that memoizes functions, preventing them from being recreated on every render. This can improve performance by ensuring that functions remain the same across renders unless their dependencies change.
+Syntax:
+javascript
+CopyEdit
+const memoizedCallback = useCallback(() => {
+  // Function logic
+}, [dependencies]);
+Use Cases:
+1. Preventing unnecessary re-renders in child components When passing a function as a prop to a child component, useCallback ensures that the function remains the same unless dependencies change, preventing unnecessary re-renders.
+2. Optimizing event handlers In cases like onPress handlers inside TouchableOpacity, useCallback ensures that the function reference remains stable.
+3. Avoiding unnecessary computations in performance-heavy operations When dealing with functions that do expensive computations, useCallback ensures the function isn't recreated unless necessary.
+
+New Architecture: JSI, TurboModules, and Fabric
+
+JavaScript Interface (JSI): Replaces the old bridge, allowing direct, synchronous communication between JavaScript and native code without the need for serialization.
+TurboModules: Enable lazy loading of native modules, meaning they are initialized only when required, reducing startup times and memory usage.
+Fabric Renderer: A new rendering system that supports asynchronous rendering, providing a more responsive and smoother user interface.
+
+* Fabric Renderer: Improves UI rendering by moving shadow tree calculations to C++ and allowing synchronous updates.
+* Codegen: Automatically generates native interface code for better type safety.
+
+
+What is the Temporal Dead Zone?
+let a;  
+console.log(a); // undefined  
+a = 10;  
+
+In this example, a is in the TDZ until it's assigned the value 10.
+
+Definition: The Temporal Dead Zone (TDZ) is the time between when a let or const variable is hoisted and when it is assigned a value in the code.
+Why It Matters: Accessing a variable in the TDZ results in a ReferenceError, as the variable exists but is not yet initialized.
+
+let vs var Hoisting:
+Explanation:
+* let a is hoisted but not initialized, so trying to access it before assignment throws a ReferenceError.
+* var b is hoisted and initialized to undefined, so trying to access it before assignment results in undefined.
+* Key Insight: The difference is in how let and var are handled during the hoisting phase. While var is accessible as undefined, let is in the Temporal Dead Zone until it’s initialized.
+javascript
+CopyEdit
+console.log(x);  // undefined
+console.log(a);  // ReferenceError: Cannot access 'a' before initialization
+console.log(b);  // undefined
+
+let a = 10;
+var b = 15;
+
+Use Case	Preferred Approach
+Fetching a single API	Async/Await for readability
+Running multiple independent async tasks	Promise.all() for parallel execution
+Handling simple async flows	Promises for straightforward .then() usage
+Sequential execution of dependent tasks	Async/Await for clear, linear execution
+Error handling in async code	Async/Await (try-catch is cleaner)
+
+Using Promises (Promise.all)
+javascript
+CopyEdit
+const fetchUser = () => Promise.resolve("User Data");
+const fetchPosts = () => Promise.resolve("Posts Data");
+
+Promise.all([fetchUser(), fetchPosts()])
+  .then(([user, posts]) => {
+    console.log(user, posts);
+  })
+  .catch(console.error);
+
+ Using Async/Await
+javascript
+CopyEdit
+async function getData() {
+  try {
+    const user = await fetchUser();
+    const posts = await fetchPosts();
+    console.log(user, posts);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+getData();
+❌ Inefficient if APIs can run in parallel (use Promise.all instead).
+
+1️⃣ Promise.all() – Waits for All to Resolve or Any to Reject
+Use Case: When you need all promises to complete successfully before proceeding. Downside: If any promise fails, the entire execution fails.
+
+2️⃣ Promise.race() – Returns First Resolved or Rejected Promise
+Use Case: When you only care about the first promise that settles (useful for timeouts). Downside: If the first promise fails, it immediately rejects.
+
+3️⃣ Promise.allSettled() – Waits for All, Returns Status of Each
+Use Case: When you want all promises to settle (either fulfilled or rejected). Downside: Doesn't short-circuit on failure.
+
+4️⃣ Promise.any() – Returns First Successfully Resolved
+Use Case: When you want the first successful promise and ignore failures. Downside: If all promises reject, it throws an AggregateError.
+
+
+// Example 1: Grouping Products by Category
+const products = [
+  { name: 'Laptop', category: 'Electronics', price: 1000 },
+  { name: 'Shirt', category: 'Clothing', price: 50 },
+  { name: 'Headphones', category: 'Electronics', price: 200 },
+  { name: 'Jeans', category: 'Clothing', price: 80 },
+  { name: 'Smartphone', category: 'Electronics', price: 800 }
+];
+
+const groupedByCategory = Object.groupBy(products, product => product.category);
+console.log(groupedByCategory);
+/*
+{
+  Electronics: [
+    { name: 'Laptop', category: 'Electronics', price: 1000 },
+    { name: 'Headphones', category: 'Electronics', price: 200 },
+    { name: 'Smartphone', category: 'Electronics', price: 800 }
+  ],
+  Clothing: [
+    { name: 'Shirt', category: 'Clothing', price: 50 },
+    { name: 'Jeans', category: 'Clothing', price: 80 }
+  ]
+}
+*/
+
+// Example 2: Grouping Students by Grade Range
+const students = [
+  { name: 'Alice', score: 85 },
+  { name: 'Bob', score: 92 },
+  { name: 'Charlie', score: 75 },
+  { name: 'David', score: 68 },
+  { name: 'Eve', score: 95 }
+];
+
+const groupedByGrade = Object.groupBy(students, student => {
+  if (student.score >= 90) return 'A';
+  if (student.score >= 80) return 'B';
+  if (student.score >= 70) return 'C';
+  return 'D';
+});
+console.log(groupedByGrade);
+/*
+{
+  B: [
+    { name: 'Alice', score: 85 }
+  ],
+  A: [
+    { name: 'Bob', score: 92 },
+    { name: 'Eve', score: 95 }
+  ],
+  C: [
+    { name: 'Charlie', score: 75 }
+  ],
+  D: [
+    { name: 'David', score: 68 }
+  ]
+}
+*/
+
+// Example 3: Grouping by Data Type
+const mixedData = [
+  1, 
+  'hello', 
+  true, 
+  42, 
+  false, 
+  'world', 
+  [1,2,3], 
+  { key: 'value' }
+];
+
+const groupedByType = Object.groupBy(mixedData, item => typeof item);
+console.log(groupedByType);
+/*
+{
+  number: [1, 42],
+  string: ['hello', 'world'],
+  boolean: [true, false],
+  object: [[1,2,3], { key: 'value' }]
+}
+*/
+
+Explain the React Native architecture
+ React Native architecture consists of:
+* JavaScript thread: Runs your React code and business logic
+* Native thread: Handles UI rendering and native modules
+* Bridge: Facilitates asynchronous communication between JS and native threads
+* Shadow tree: Calculates layouts before applying to native views
+
+ How do you optimize performance in React Native apps?
+Performance optimization techniques:
+* Use FlatList instead of ScrollView for long lists
+* Implement memoization with React.memo, useMemo, useCallback
+* Reduce re-renders by optimizing state management
+* Use native driver for animations (useNativeDriver: true)
+* Avoid unnecessary bridge calls between JS and native
+* Optimize images (resize, cache with FastImage)
+* Code splitting and lazy loading components
+* Use Hermes JavaScript engine for better startup performance
+
+
+What are some React Native best practices you follow?
+Key best practices:
+* Follow component-based architecture
+* Separate business logic from UI components
+* Implement proper error boundaries
+* Use TypeScript for type safety
+* Optimize asset sizes and loading
+* Implement proper security measures (SSL pinning, secure storage)
+* Write unit and integration tests
+* Follow platform-specific design guidelines
+* Use CI/CD pipelines for automated builds
+* Monitor performance metrics in production
+
+What is the difference between Component and PureComponent in React Native?
+* Component:
+    * It is the base class for creating a React component in React Native.
+    * When the component’s state or props change, React will always re-render the component.
+* PureComponent:
+    * It is similar to Component, but it implements shouldComponentUpdate() with a shallow prop and state comparison.
+    * This means that React will only re-render the component if the props or state have changed (as per a shallow comparison).
+    * It can lead to performance optimization in some cases, especially with large lists or complex UI.
+
+Navigation Libraries:
+npm install @react-navigation/native @react-navigation/stack react-native-screens react-native-safe-area-context
+
+state:
+* Represents data that changes over time and affects the rendering of the component.
+* It is mutable and can be updated using setState() (in class components) or useState() (in functional components).
+props:
+* Represents data passed down from parent to child components.
+* Props are read-only and cannot be changed within the child component.
+
+import React, { useState } from 'react';
+import { View, TextInput, Button, Text } from 'react-native';
+
+const App = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = () => {
+    console.log('Name:', name);
+    console.log('Email:', email);
+  };
+
+  return (
+    <View>
+      <TextInput
+        placeholder="Enter your name"
+        value={name}
+        onChangeText={(text) => setName(text)}
+      />
+      <TextInput
+        placeholder="Enter your email"
+        value={email}
+        onChangeText={(text) => setEmail(text)}
+      />
+      <Button title="Submit" onPress={handleSubmit} />
+    </View>
+  );
+};
+
+export default App;
+
+
+<FlatList
+  data={data}
+  renderItem={renderItem}
+  initialNumToRender={10} // Render 10 items initially
+maxToRenderPerBatch={5}  // Only 5 items rendered per batch
+windowSize={21} // Increase if scrolling is slow
+// getItemLayout => If your list items have a fixed height, you can define getItemLayout to avoid measuring every item dynamically.
+getItemLayout={(data, index) => ({
+    length: ITEM_HEIGHT, 
+    offset: ITEM_HEIGHT * index,
+    index,
+  })}
+/>
+
+React Context:
+
+import React, { createContext, useState } from 'react';
+
+// Create a context
+const MyContext = createContext();
+
+const MyProvider = ({ children }) => {
+  const [value, setValue] = useState('Hello, World!');
+
+  return (
+    <MyContext.Provider value={{ value, setValue }}>
+      {children}
+    </MyContext.Provider>
+  );
+};
+
+export { MyContext, MyProvider };
+Wrap your application with the Context Provider:
+
+In your App.js:
+import React from 'react';
+import { View, Text, Button } from 'react-native';
+import { MyProvider, MyContext } from './MyContext';
+
+const App = () => {
+  return (
+    <MyProvider>
+      <HomeScreen />
+    </MyProvider>
+  );
+};
+
+const HomeScreen = () => {
+  const { value, setValue } = React.useContext(MyContext);
+
+  return (
+    <View>
+      <Text>{value}</Text>
+      <Button title="Change Text" onPress={() => setValue('Hello from Context!')} />
+    </View>
+  );
+};
+
+export default App;
+
+Explanation:
+createContext: Creates a context that holds the state.
+MyProvider: Provides the context to child components.
+useContext: Consumes the context value in any component.
+
+useCallback:
+* This hook returns a memoized version of a callback function that only changes if one of the dependencies has changed.
+* It helps to prevent unnecessary re-renders when passing functions down to child components.
+
+import React, { useState, useCallback } from 'react';
+import { Button, View } from 'react-native';
+
+const App = () => {
+  const [count, setCount] = useState(0);
+
+  // Memoize the callback to prevent re-creating on each render
+  const increment = useCallback(() => {
+    setCount(count + 1);
+  }, [count]); // Re-create the function only when 'count' changes
+
+  return (
+    <View>
+      <Button title="Increment" onPress={increment} />
+    </View>
+  );
+};
+export default App;
+
+Explain how to implement deep linking in React Native.
+Deep linking allows your app to respond to URLs and can be used to navigate to specific screens based on the URL. Here's how to implement deep linking in React Native:
+1. Install necessary dependencies:
+bash
+Copy
+npm install @react-navigation/native @react-navigation/stack react-native-screens react-native-safe-area-context react-native-linking
+
+2. Configure deep linking:
+In App.js:
+javascript
+Copy
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Linking } from 'react-native';
+
+const Stack = createStackNavigator();
+
+const HomeScreen = () => <Text>Home Screen</Text>;
+const ProfileScreen = () => <Text>Profile Screen</Text>;
+
+const App = () => {
+  const linking = {
+    prefixes: ['myapp://'],
+    config: {
+      screens: {
+        Home: '',
+        Profile: 'profile/:id', // Example of a dynamic route
+      },
+    },
+  };
+
+  return (
+    <NavigationContainer linking={linking}>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
+export default App;
+Explanation:
+* linking: This is the deep linking configuration. prefixes are the URL schemes your app will respond to, and config defines the mapping of screens to URL paths.
+* Profile: 'profile/:id': The :id part allows passing parameters in the URL.
+
+
+
+Form with useRef():
+import React, { useRef, useState } from 'react';
+import { View, TextInput, StyleSheet } from 'react-native';
+
+const FormExample = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: ''
+  });
+
+  const usernameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
+  const handleChange = (name, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Username Input */}
+      <TextInput
+        ref={usernameRef}
+        value={formData.username}
+        onChangeText={(text) => handleChange('username', text)}
+        placeholder="Username"
+        style={styles.input}
+        returnKeyType="next"  // Shows "Next" on keyboard
+        onSubmitEditing={() => emailRef.current.focus()}  // Move to next input
+      />
+
+      {/* Email Input */}
+      <TextInput
+        ref={emailRef}
+        value={formData.email}
+        onChangeText={(text) => handleChange('email', text)}
+        placeholder="Email"
+        keyboardType="email-address"
+        style={styles.input}
+        returnKeyType="next"  // Shows "Next" on keyboard
+        onSubmitEditing={() => passwordRef.current.focus()}  // Move to next input
+      />
+
+      {/* Password Input */}
+      <TextInput
+        ref={passwordRef}
+        value={formData.password}
+        onChangeText={(text) => handleChange('password', text)}
+        placeholder="Password"
+        secureTextEntry
+        style={styles.input}
+        returnKeyType="done"  // Shows "Done" on last input
+        onSubmitEditing={() => {
+          // Optionally handle form submission
+          console.log('Form submitted', formData);
+        }}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 5,
+  }
+});
+
+export default FormExample;
+
+
+How would you optimize performance in a large React Native application?  
+Performance optimization strategies include:
+* Implementing React.memo() and useMemo() to prevent unnecessary re-renders
+* Using useCallback() for function references
+* Virtualizing long lists with FlatList and SectionList
+* Implementing proper image caching and loading strategies
+* Reducing bridge traffic by batching native calls
+* Using Hermes JavaScript engine
+* Implementing code splitting and lazy loading
+* Avoiding unnecessary state updates
+* Using InteractionManager for deferring non-critical tasks
+
+
+Explain the architecture of React Native and how the JavaScript thread communicates with native modules?
+React Native has a multi-threaded architecture:
+1. JavaScript thread: Runs your React/JavaScript code
+2. Main/UI thread: Handles native UI rendering
+3. Shadow thread: Calculates layouts
+Communication happens via a "bridge" that serializes data between JS and native code. When JS needs to access native functionality, it sends a message across the bridge, which is then processed by the native side. The new architecture (Fabric & TurboModules) is introducing a more direct communication approach with JSI (JavaScript Interface) that reduces overhead by allowing direct function calls between JavaScript and C++.
+
+
+Custom native module to access the battery level on both Android and iOS in a React Native project:
+
+Android:
+Step 1: Create a Native Module 
+Create a new file BatteryModule.java inside android/app/src/main/java/com/yourpackage/
+
+Step 2: Create a Package Class
+Create BatteryPackage.java in the same directory.
+
+Step 3: Register the Package
+Edit MainApplication.java and add the new package.
+
+
+iOS:
+Step 1: Create a Native Module
+Inside ios/ folder, create a new file BatteryModule.h
+
+Step 2: Create a Package
+Inside ios/ folder, create a new file BatteryModule.m
+
+Step 3: Register the Package
+Edit AppDeligate.m and add the new package.
+
+
+Step 4: create a JavaScript Interface File
+
+src/modules/BatteryModuleInterface.js
+
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+const { BatteryModule } = NativeModules;
+
+// Create event emitter
+const batteryEventEmitter = new NativeEventEmitter(BatteryModule);
+
+export default {
+  /**
+   * Get the current battery level
+   * @return {Promise<number>} Battery level percentage (0-100)
+   */
+  getBatteryLevel: () => {
+    return BatteryModule.getBatteryLevel();
+  },
+
+  /**
+   * Start monitoring battery level changes
+   * Returns a function to remove the listener when done
+   * @param {Function} callback Function to call when battery level changes
+   * @return {Function} Cleanup function to remove listener
+   */
+  monitorBatteryLevel: (callback) => {
+    // Start native monitoring
+    BatteryModule.startMonitoringBattery();
+
+    // Add the event listener
+    const subscription = batteryEventEmitter.addListener(
+      'BatteryLevelChanged',
+      (data) => {
+        callback(data.batteryLevel);
+      }
+    );
+
+    // Return a function to remove the listener
+    return () => {
+      subscription.remove();
+    };
+  }
+};
+
+Step 5: Using Interface in the Components
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, AppState } from 'react-native';
+import BatteryModuleInterface from '../modules/BatteryModuleInterface';
+
+const BatteryStatus = () => {
+  const [batteryLevel, setBatteryLevel] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchBatteryLevel = async () => {
+      try {
+        const level = await BatteryModuleInterface.getBatteryLevel();
+        setBatteryLevel(level);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message || 'Failed to get battery level');
+        setLoading(false);
+      }
+    };
+
+    // Initial fetch
+    fetchBatteryLevel();
+
+    // Set up real-time monitoring
+    const unsubscribe = BatteryModule.monitorBatteryLevel((level) => {
+      setBatteryLevel(level);
+    });
+
+    // Handle app state changes
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active') {
+        fetchBatteryLevel();
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Clean up
+    return () => {
+      unsubscribe();
+      appStateSubscription.remove();
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading battery status...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.error}>Error: {error}</Text>
+      </View>
+    );
+  }
+
+  // Battery status indicator
+  return (
+    <View style={styles.container}>
+      <Text style={styles.batteryText}>
+        Battery: {batteryLevel.toFixed(1)}%
+      </Text>
+      <View style={styles.batteryContainer}>
+        <View 
+          style={[
+            styles.batteryLevel, 
+            { width: `${batteryLevel}%` },
+            batteryLevel < 20 ? styles.batteryLow : 
+            batteryLevel < 50 ? styles.batteryMedium : styles.batteryHigh
+          ]} 
+        />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  batteryText: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  batteryContainer: {
+    height: 25,
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 5,
+  },
+  batteryLevel: {
+    height: '100%',
+  },
+  batteryHigh: {
+    backgroundColor: 'green',
+  },
+  batteryMedium: {
+    backgroundColor: 'orange',
+  },
+  batteryLow: {
+    backgroundColor: 'red',
+  },
+  error: {
+    color: 'red',
+  },
+});
+
+export default BatteryStatus;
+
+
+What testing strategies do you implement for React Native applications? 
+A comprehensive testing strategy includes:
+* Unit testing: Using Jest for testing individual components and functions
+* Component testing: Using React Native Testing Library to test components in isolation
+* Integration testing: Testing interactions between components
+* E2E testing: Using Detox or Appium to test the entire application flow
+* Manual testing: On real devices across different OS versions
+* CI/CD: Implementing automated testing in the CI pipeline
+
+Describe your approach to implementing a robust CI/CD pipeline for React Native?
+A robust CI/CD pipeline for React Native typically includes:
+1. Source control integration (GitHub/GitLab/Bitbucket)
+2. Automated testing at different levels (unit, integration, E2E)
+3. Code quality checks with ESLint and TypeScript
+4. Build automation for both iOS and Android
+5. Distribution to testers via TestFlight, Firebase App Distribution, or similar
+6. Crash reporting and analytics integration
+7. Automated deployment to app stores
+8. Feature flagging for controlled rollouts
+Tools like Fastlane, GitHub Actions, CircleCI, or Bitrise are commonly used to automate these processes.
+
+
+Analytics and Crash Reporting in React Native
+Setting up analytics and crash reporting is crucial for monitoring user behavior and app stability in your React Native application. Here's a comprehensive guide on implementing both:
+Analytics Implementation
+1. Firebase Analytics
+import analytics from '@react-native-firebase/analytics'; // Log a simple event const logScreenView = async (screen) => { await analytics().logScreenView({ screen_name: screen, screen_class: screen, }); };
+2. Mixpanel
+3. Amplitude
+Amplitude focuses on product analytics and user journey tracking
+
+Crash Reporting
+1. Firebase Crashlytics
+Firebase Crashlytics provides detailed crash reports and real-time alerts.
+
+import crashlytics from '@react-native-firebase/crashlytics'
+// Log custom errors
+try {
+  // Your code that might throw an error
+} catch (error) {
+  crashlytics().recordError(error);
+}
+
+// Log non-fatal errors with context
+crashlytics().log('User attempted to checkout with invalid payment method');
+crashlytics().recordError(new Error('Payment processing failed'));
+
+// Set user information for better crash context
+const setUserForCrashReporting = async (userId, username, email) => {
+  await crashlytics().setUserId(userId);
+  await crashlytics().setAttributes({
+    username: username,
+    email: email,
+    subscription: 'premium',
+  });
+};
+
+
+TypeScript and React Native work together seamlessly by providing strong typing to JavaScript code
+
+1. Early Error Detection During Development
+TypeScript enables static type checking, meaning errors related to incorrect data types are detected at compile time rather than runtime.
+
+Justification:
+* Without TypeScript, JavaScript allows passing incorrect data types to functions, leading to runtime errors.
+* With TypeScript, if you mistakenly pass a string instead of a number to a function, the compiler will throw an error, reducing runtime crashes.
+
+2. Better IDE Support with Autocompletion and Intelligent Suggestions
+
+3.Safer Refactoring with Compile-Time Type Checking
+TypeScript ensures that changes in one part of the codebase don’t break other parts unexpectedly.
+* Example: If a function signature changes, TypeScript will flag all incorrect function calls so they can be fixed before execution.
+
+
+4. Enhanced Maintainability for Large Codebases
+For larger projects, managing a growing codebase without TypeScript becomes difficult.
+Example: When handling API responses, TypeScript helps ensure the expected data format:
+
+
+
+Large data From Handling:
+import React,{useState, useRef}from 'react';
+import {View, Text, StyleSheet, TextInput} from 'react-native';
+const App = () =>{
+  const [formdata, setFormdata ] = useState(
+    {
+    "name":'',
+    "email":'',
+    "password":''
+  });
+
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
+  const onChange = ({ name, value }) => {
+    setFormdata(prev => ({ ...prev, [name]: value }));
+  };
+
+  return(
+    <View style={styles.container}>
+  
+    <TextInput
+    placeholder = 'Name'
+    ref={nameRef}
+    value= {formdata.name}
+    onChangeText={(value)=>onChange({name:"name",value})}
+    style={styles.inputbox}
+    returnKeyType='next'
+    onSubmitEditing={()=>{emailRef.current.focus()}}
+    />
+
+   <TextInput
+    placeholder = 'Email'
+    ref={emailRef}
+    value= {formdata.email}
+    onChangeText={(value)=> onChange({name:"email", value})}
+    style={styles.inputbox}
+    returnKeyType='next'
+    onSubmitEditing={()=>{passwordRef.current.focus()}}
+    />
+
+    <TextInput
+    placeholder = 'password'
+    ref={passwordRef}
+    secureTextEntry={true}
+    value= {formdata.password}
+    onChangeText={(value)=>{onChange({name:"password", value})}}
+    style={styles.inputbox}
+     returnKeyType='done'
+    />
+    <Text>{formdata?.name}</Text>
+    <Text>{formdata?.email}</Text>
+    <Text>{formdata?.password}</Text>
+
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    padding:16,
+    marginTop:40
+  },
+  inputbox:{
+    borderRadius:3,
+    borderColor:'gray',
+    borderWidth:1,
+    padding:8,
+    marginBottom:10
+  },
+})
+export default App;
+
+
+Find and Fix the performance  issues:
+
+const ExpensiveComponent = ({ data, onDataChange }) => {
+  const [processedData, setProcessedData] = useState([]);
+  
+  const processData = () => {
+    // Complex transformation of data
+    return data.map(item => ({
+      ...item,
+      processed: item.value * 2,
+      timestamp: new Date().toISOString()
+    }));
+  };
+  
+  useEffect(() => {
+    const result = processData();
+    setProcessedData(result);
+    onDataChange(result);
+  }, [data]);
+  
+  return (
+    <View>
+      {processedData.map(item => (
+        <Text key={item.id}>{item.processed}</Text>
+      ))}
+    </View>
+  );
+};
+
+
+Answer:
+
+import React, { useMemo, useEffect } from 'react';
+import { View, Text } from 'react-native';
+
+const ExpensiveComponent = ({ data, onDataChange }) => {
+  const processedData = useMemo(() => {
+    return data.map(item => ({
+      ...item,
+      processed: item.value * 2,
+      timestamp: item.timestamp || new Date().toISOString(),
+    }));
+  }, [data]);
+
+  useEffect(() => {
+    onDataChange(processedData);
+  }, [processedData]);
+
+  return (
+    <View>
+      {processedData.map(item => (
+        <Text key={item.id}>{item.processed}</Text>
+      ))}
+    </View>
+  );
+};
+
+export default React.memo(ExpensiveComponent);
+
+
+Difference Between UseMemo and use callback:
+
+Hook	Purpose	Returns
+useMemo	Memoizes the result of a function	A value
+useCallback	Memoizes the function itself	A function
+
+Used when you're passing a function to a child component to avoid unnecessary re-renders.
+🔹 Example:
+js
+CopyEdit
+import React, { useCallback } from 'react';
+import { View, Button } from 'react-native';
+
+const Child = React.memo(({ onClick }) => {
+  console.log("Child rendered");
+  return <Button title="Click Me" onPress={onClick} />;
+});
+
+const Parent = () => {
+  const handleClick = useCallback(() => {
+    console.log("Button clicked");
+  }, []);
+
+  return (
+    <View>
+      <Child onClick={handleClick} />
+    </View>
+  );
+};
+
+
+handleClick is the same function reference every render.
+This prevents the Child component from re-rendering unless it really has to.
+
+React.memo:
+React.memo is a higher-order component that prevents a functional component from re-rendering if its props haven't changed.
+
+
+5. Identify and fix the performance issue in this component
+
+const UserProfile = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  
+  const fetchUserData = async () => {
+    const userData = await API.getUser(userId);
+    setUser(userData);
+  };
+  
+  const fetchUserPosts = async () => {
+    const userPosts = await API.getUserPosts(userId);
+    setPosts(userPosts);
+  };
+  
+  useEffect(() => {
+    fetchUserData();
+    fetchUserPosts();
+  }, [userId]);
+  
+  const renderPost = ({ item }) => {
+    return (
+      <View style={{ padding: 10, marginBottom: 10 }}>
+        <Text style={{ fontWeight: 'bold' }}>{item.title}</Text>
+        <Text>{item.content}</Text>
+        <TouchableOpacity onPress={() => likePost(item.id)}>
+          <Text>Like ({item.likes})</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  const likePost = (postId) => {
+    const updatedPosts = posts.map(post => {
+      if (post.id === postId) {
+        return { ...post, likes: post.likes + 1 };
+      }
+      return post;
+    });
+    setPosts(updatedPosts);
+    API.likePost(postId);
+  };
+  
+  if (!user) return <ActivityIndicator />;
+  
+  return (
+    <View>
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <Image source={{ uri: user.avatar }} style={{ width: 100, height: 100, borderRadius: 50 }} />
+        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{user.name}</Text>
+        <Text>{user.bio}</Text>
+      </View>
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={item => item.id.toString()}
+      />
+    </View>
+  );
+};
+
+Answer: Several performance issues exist:
+1. Missing dependency in useEffect: fetchUserData and fetchUserPosts should be dependencies
+2. renderPost function is recreated on every render
+3. likePost function is recreated on every render
+4. No memoization of expensive components
+
+
+const UserProfile = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  
+  const fetchUserData = useCallback(async () => {
+    const userData = await API.getUser(userId);
+    setUser(userData);
+  }, [userId]);
+  
+  const fetchUserPosts = useCallback(async () => {
+    const userPosts = await API.getUserPosts(userId);
+    setPosts(userPosts);
+  }, [userId]);
+  
+  useEffect(() => {
+    fetchUserData();
+    fetchUserPosts();
+  }, [fetchUserData, fetchUserPosts]);
+  
+  const likePost = useCallback((postId) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, likes: post.likes + 1 };
+      }
+      return post;
+    }));
+    API.likePost(postId);
+  }, []);
+  
+  const renderPost = useCallback(({ item }) => {
+    return (
+      <View style={{ padding: 10, marginBottom: 10 }}>
+        <Text style={{ fontWeight: 'bold' }}>{item.title}</Text>
+        <Text>{item.content}</Text>
+        <TouchableOpacity onPress={() => likePost(item.id)}>
+          <Text>Like ({item.likes})</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }, [likePost]);
+  
+  if (!user) return <ActivityIndicator />;
+  
+  return (
+    <View>
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <Image source={{ uri: user.avatar }} style={{ width: 100, height: 100, borderRadius: 50 }} />
+        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{user.name}</Text>
+        <Text>{user.bio}</Text>
+      </View>
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={item => item.id.toString()}
+      />
+    </View>
+  );
+};
+
+
+Why useCallback / useMemo?
+* They prevent recreation by reusing the same function/object unless dependencies change.
+* This improves performance, avoids unnecessary re-renders, and keeps useEffect, React.memo, etc. working as expected.
+
+🗑️ When is Memory Cleared?
+When?	What Happens?
+Component unmounts	React cleans up all memory from that component.
+App reloads/closes	Whole app memory is cleared.
+Variable/function is no longer used	JavaScript's Garbage Collector frees memory.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
